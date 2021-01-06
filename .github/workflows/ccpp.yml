@@ -28,14 +28,18 @@ jobs:
       matrix:
         build-type: [Release, Debug, Sanitize]
     container:
-      image: docker.pkg.github.com/little-big-h/buildenvironment/image:latest
+      image: docker.pkg.github.com/little-big-h/buildenvironment/wolframbased:latest
       credentials:
          username: little-big-h
          password: 71589973e27e38bae496e2f4b49be18d2c4fc9f0
     steps:
     - uses: actions/checkout@v2
     - name: configure
-      run: cmake -B${{ matrix.build-type }} -DCMAKE_BUILD_TYPE=${{ matrix.build-type }} -DCMAKE_CXX_CLANG_TIDY=clang-tidy .
+      run: |
+        mkdir ${{ matrix.build-type }}
+        cd ${{ matrix.build-type }}
+        cmake -DCMAKE_BUILD_TYPE=${{ matrix.build-type }} -DCMAKE_CXX_CLANG_TIDY=clang-tidy ..
+        cd ..
     - name: build
       run: cmake --build ${{ matrix.build-type }}
     - name: Upload artifact
@@ -51,7 +55,7 @@ jobs:
       matrix:
         build-type: [Release, Debug, Sanitize]
     container:
-      image: docker.pkg.github.com/little-big-h/buildenvironment/image:latest
+      image: docker.pkg.github.com/little-big-h/buildenvironment/wolframbased:latest
       credentials:
          username: little-big-h
          password: 71589973e27e38bae496e2f4b49be18d2c4fc9f0
