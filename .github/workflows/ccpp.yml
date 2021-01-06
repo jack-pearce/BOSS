@@ -34,6 +34,8 @@ jobs:
          password: 71589973e27e38bae496e2f4b49be18d2c4fc9f0
     steps:
     - uses: actions/checkout@v2
+      with:
+        submodules: true
     - name: configure
       run: |
         mkdir ${{ matrix.build-type }}
@@ -43,10 +45,16 @@ jobs:
     - name: build
       run: cmake --build ${{ matrix.build-type }}
     - name: Upload artifact
-      uses: actions/upload-artifact@v1.0.0
+      uses: actions/upload-artifact@v2
       with:
         name: ${{ matrix.build-type }}
-        path: ${{ matrix.build-type }}
+        retention-days: 1
+        path: |
+          ${{ matrix.build-type }}
+          !${{ matrix.build-type }}/deps
+          !${{ matrix.build-type }}/CMakeFiles
+          !${{ matrix.build-type }}/catch2-prefix
+          !${{ matrix.build-type }}/googlebenchmark-prefix
     needs: [format-check]
 
   test:
@@ -61,9 +69,12 @@ jobs:
          password: 71589973e27e38bae496e2f4b49be18d2c4fc9f0
     steps:
     - name: Download artifact
-      uses: actions/download-artifact@v1.0.0
+      uses: actions/download-artifact@v2
       with:
         name: ${{ matrix.build-type }}
     - name: test
-      run: chmod +x ${{ matrix.build-type }}/Tests && ${{ matrix.build-type }}/Tests
+      run: |
+        echo "${{ secrets.MATHEMATICA_LICENSE }}" > mathpass
+        chmod +x ./Tests && ./Tests
     needs: [build]
+
