@@ -7,8 +7,7 @@ using std::get;
 using std::string;
 using boss::utilities::operator""_;
 
-TEMPLATE_TEST_CASE("Simpletons", "", boss::engines::wolfram::Engine,
-                   boss::engines::mlir::Engine) { // NOLINT
+TEMPLATE_TEST_CASE("Simpletons", "", boss::engines::wolfram::Engine) { // NOLINT
   static auto eval = [e = TestType()](boss::Expression const& expression) mutable {
     return e.evaluate(expression);
   };
