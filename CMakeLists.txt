@@ -53,7 +53,7 @@ find_path(ITT_NOTIFY_INCLUDE_DIR "ittnotify.h" HINTS ${VTune_DIR}/include)
 set(CMAKE_MODULE_PATH "${BOSS_SOURCE_DIR}/CMake/Mathematica/CMake/Mathematica" ${CMAKE_MODULE_PATH})
 find_package(Mathematica COMPONENTS WSTP)
 
-find_package(SWIG 4) # at least swig 4.0 for C++17 support
+find_package(SWIG 3)
 
 set(Racket_ROOT "" CACHE PATH "Where to look for Racket API")
 find_path(Racket_LIB_DIR "mzdyn3m.o" HINTS ${Racket_ROOT}/lib ${Racket_ROOT}/lib/racket)
@@ -97,7 +97,7 @@ endforeach()
 
 ############################### Executable Targets ###############################
 
-set(ImplementationFiles Source/BOSS.cpp)
+set(ImplementationFiles Source/BOSS.cpp Source/Expression.cpp)
 set(ExecutableFiles Source/main.cpp)
 set(TestFiles Tests/BOSSTests.cpp)
 set(BenchmarkFiles Benchmarks/BOSSBenchmarks.cpp)
@@ -137,15 +137,14 @@ if(SWIG_FOUND)
   if(Racket_LIB_DIR AND Racket_INCLUDE_DIR)
     message(VERBOSE "Found Racket lib dir: ${Racket_LIB_DIR}")
     message(VERBOSE "Found Racket include dir: ${Racket_INCLUDE_DIR}")
-    set_property(SOURCE ${SwigFiles} PROPERTY COMPILE_OPTIONS "")
     swig_add_library(RacketBOSS TYPE MODULE LANGUAGE mzscheme SOURCES ${SwigFiles} ${ImplementationFiles} "${Racket_LIB_DIR}/mzdyn3m.o")
     set_property(TARGET ${SWIG_MODULE_RacketBOSS_REAL_NAME} PROPERTY CXX_CLANG_TIDY "") # no clang-tidy
     target_compile_options(${SWIG_MODULE_RacketBOSS_REAL_NAME} PUBLIC -DMZ_PRECISE_GC)
     if(APPLE)
       target_compile_options(${SWIG_MODULE_RacketBOSS_REAL_NAME} PUBLIC -DOS_X)
+      target_link_options(${SWIG_MODULE_RacketBOSS_REAL_NAME} PUBLIC  -bundle -flat_namespace -undefined suppress)
     endif(APPLE)
     target_compile_options(${SWIG_MODULE_RacketBOSS_REAL_NAME} PUBLIC -Wno-reserved-user-defined-literal)
-    target_link_options(${SWIG_MODULE_RacketBOSS_REAL_NAME} PUBLIC  -bundle -flat_namespace -undefined suppress)
     set_property(TARGET ${SWIG_MODULE_RacketBOSS_REAL_NAME} PROPERTY SWIG_USE_TARGET_INCLUDE_DIRECTORIES TRUE)
     target_include_directories(${SWIG_MODULE_RacketBOSS_REAL_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
     target_include_directories(${SWIG_MODULE_RacketBOSS_REAL_NAME} PUBLIC "${Racket_INCLUDE_DIR}")

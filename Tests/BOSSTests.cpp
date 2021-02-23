@@ -1,11 +1,14 @@
+#include <variant>
 #define CATCH_CONFIG_MAIN
-#include <catch2/catch.hpp>
-#ifdef WSINTERFACE
 #include "../Source/BOSS.hpp"
 #include "../Source/Utilities.hpp"
+#include <catch2/catch.hpp>
+#ifdef WSINTERFACE
 using std::get;
 using std::string;
 using boss::utilities::operator""_;
+
+using Value = boss::Expression;
 
 TEMPLATE_TEST_CASE("Simpletons", "", boss::engines::wolfram::Engine) { // NOLINT
   static auto eval = [e = TestType()](boss::Expression const& expression) mutable {
@@ -41,6 +44,45 @@ TEMPLATE_TEST_CASE("Simpletons", "", boss::engines::wolfram::Engine) { // NOLINT
     CHECK(get<std::string>(
               get<boss::ComplexExpression>(eval("UndefinedFunction"_((string) "Hello World!")))
                   .getArguments()[0]) == "Hello World!");
+  }
+
+  SECTION("Relational") {
+    eval("CreateTable"_("Customer"_, "FirstName", "LastName"));
+    eval("InsertInto"_("Customer"_, "John", "McCarthy"));
+    eval("InsertInto"_("Customer"_, "Sam", "Madden"));
+    eval("InsertInto"_("Customer"_, "Barbara", "Liskov"));
+    SECTION("Selection") {
+      auto const& sam = eval(
+          "Select"_("Customer"_,
+                    "Function"_("tuple"_, "StringContainsQ"_("Madden", "Column"_("tuple"_, 2)))));
+      REQUIRE(sam == "List"_("List"_("Sam", "Madden")));
+      REQUIRE(sam != "List"_("List"_("Barbara", "Liskov")));
+    }
+
+    SECTION("Aggregation") {
+      REQUIRE(eval("GroupBy"_("Customer"_, "Function"_(0), "Count"_)) == Value(3));
+      REQUIRE(eval("GroupBy"_(
+                  ("Select"_("Customer"_,
+                             "Function"_("tuple"_,
+                                         "StringContainsQ"_("Madden", "Column"_("tuple"_, 2))))),
+                  "Function"_(0), "Count"_)) == Value(1));
+    }
+
+    SECTION("Join") {
+      eval("CreateTable"_("Adjacency1"_, "From", "To"));
+      eval("CreateTable"_("Adjacency2"_, "From", "To"));
+      auto const dataSetSize = 10;
+      for(int i = 0U; i < dataSetSize; i++) {
+        eval("InsertInto"_("Adjacency1"_, i, dataSetSize + i));
+        eval("InsertInto"_("Adjacency2"_, dataSetSize + i, i));
+      }
+      auto const& result =
+          eval("Join"_("Adjacency1"_, "Adjacency2"_,
+                       "Function"_("List"_("left"_, "right"_),
+                                   "Equal"_("Column"_("left"_, 2), "Column"_("right"_, 1)))));
+      INFO(get<boss::ComplexExpression>(result));
+      REQUIRE(get<boss::ComplexExpression>(result).getArguments().size() == dataSetSize);
+    }
   }
 }
 #endif // WSINTERFACE
