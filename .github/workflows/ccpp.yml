@@ -76,7 +76,7 @@ jobs:
         path: ${{ matrix.build-type }}
     - name: test
       run: |
-        echo "${{ secrets.MATHEMATICA_LICENSE }}" > mathpass
+        wolframscript -username ${{ secrets.MATHEMATICA_USERNAME }} -password ${{ secrets.MATHEMATICA_PASSWORD }}
         chmod +x ./${{ matrix.build-type }}/Tests && ./${{ matrix.build-type }}/Tests
     needs: [build]
 
