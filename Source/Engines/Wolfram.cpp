@@ -184,13 +184,16 @@ struct EngineImplementation {
         "GroupBy"_,
         {"Pattern"_("input"_, "Blank"_()), "Pattern"_("groupFunction"_, "Blank"_()),
          "Pattern"_("aggregateFunction"_, "Blank"_())},
-        "Switch"_("aggregateFunction"_, //
-                  namespaced("Count"_),
-                  "List"_("Association"_("Rule"_(
-                      "Count_", "Length"_(namespaced("GetPersistentTableIfSymbol"_)("input"_))))),
-                  "Blank"_(),
-                  "Fold"_("Plus"_, "Map"_("Extract"_("Key"_("First"_("aggregateFunction"_))),
-                                          namespaced("GetPersistentTableIfSymbol"_)("input"_)))));
+        "Switch"_(
+            "aggregateFunction"_, //
+            namespaced("Count"_),
+            "List"_("Association"_(
+                "Rule"_("Count_", "Length"_(namespaced("GetPersistentTableIfSymbol"_)("input"_))))),
+            "Blank"_(),
+            "List"_("Association"_("Rule"_(
+                "Sum"_,
+                "Fold"_("Plus"_, "Map"_("Extract"_("Key"_("First"_("aggregateFunction"_))),
+                                        namespaced("GetPersistentTableIfSymbol"_)("input"_))))))));
 
     DefineFunction("GroupBy"_,
                    {"Pattern"_("input"_, "Blank"_()), "Pattern"_("aggregateFunction"_, "Blank"_())},

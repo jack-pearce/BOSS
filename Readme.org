@@ -47,7 +47,11 @@
     (check-equal?
      (eval
       '((lambda ()
-          (define (unpack expression) (if (list? expression) (unpack (second expression)) expression))
+          (define (unpack expression)
+            (let ([x (rest (second expression))])
+              (if (eq? (length x) 1) (first x) x )
+              )
+            )
           producer
           ))) expected message)
     )
@@ -83,8 +87,8 @@
        )))
 
   (expect (unpack  (GroupBy Customer (Function tuple 0) Count)) 1 "Grouping")
-  (expect (unpack (Plus 1 2 3)) 6 "Arithmetic")
-  (expect (unpack (Greater 1 0)) #t "Logic")
+  (expect  (Plus 1 2 3) 6 "Arithmetic")
+  (expect  (Greater 1 0) #t "Logic")
   (expect (unpack (GroupBy
                    (Select Customer
                            (Function t (Greater 1 0)))
@@ -184,5 +188,24 @@
                    )) 51019308 "TPC-H Q6")
 
 
+  (expect (unpack (Project
+                   (Select Lineitem
+                           (Where (And (Greater QUANTITY 25)
+                                       (Greater DISCOUNT 3)
+                                       (Greater 10 DISCOUNT)
+                                       (Greater (UnixTime "1998-01-01") SHIPDATE)
+                                       (Greater SHIPDATE (UnixTime "1996-03-08"))
+                                       )))
+                   (As COMMENT COMMENT)))  "ly final dependencies: slyly bold" "projection")
+
+
+  (expect (unpack (Select Lineitem
+                               (Where (And (Greater QUANTITY 25)
+                                           (Greater DISCOUNT 3)
+                                           (Greater 10 DISCOUNT)
+                                           (Greater (UnixTime "1998-01-01") SHIPDATE)
+                                           (Greater SHIPDATE (UnixTime "1996-03-08"))
+                                           ))
+                               )) '(1 674 75 2 36 5668812 9 6 "N" "O" 829263600 825462000 829954800 "TAKE BACK RETURN" "MAIL" "ly final dependencies: slyly bold") "TPC-H Q6")
 #+end_src
 
