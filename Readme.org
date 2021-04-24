@@ -31,13 +31,13 @@
 
 ** Building
 : cmake --build .
-    
+
 ** Running
 *** Python example
 : python3 ../Tests/TestPython.py
 
 *** Racket example
-#+begin_src racket :exports both :tangle yes :main no :cache no 
+#+begin_src racket :exports both :tangle yes :main no :cache no
   #lang racket
   ;; utilities
   (load-extension "RacketBOSS.so")
@@ -47,11 +47,6 @@
     (check-equal?
      (eval
       '((lambda ()
-          (define (unpack expression)
-            (let ([x (rest (second expression))])
-              (if (eq? (length x) 1) (first x) x )
-              )
-            )
           producer
           ))) expected message)
     )
@@ -86,30 +81,30 @@
        (InsertInto Lineitem 1 637  38 3 8  1230104 010 002 "N" "O" (UnixTime "1996-01-29") (UnixTime "1996-03-05") (UnixTime "1996-01-31") "TAKE BACK RETURN"  "REG AIR" "riously. regular, express dep")
        )))
 
-  (expect (unpack  (GroupBy Customer (Function tuple 0) Count)) 1 "Grouping")
-  (expect  (Plus 1 2 3) 6 "Arithmetic")
-  (expect  (Greater 1 0) #t "Logic")
-  (expect (unpack (GroupBy
+  (expect (GroupBy Customer (Function tuple 0) Count) '((1)) "Grouping")
+  (expect (Plus 1 2 3) 6 "Arithmetic")
+  (expect (Greater 1 0) #t "Logic")
+  (expect (GroupBy
                    (Select Customer
                            (Function t (Greater 1 0)))
-                   (Function 0) Count)) 1 "Select + Aggregate")
-  (expect (unpack (GroupBy
+                   (Function 0) Count) '((1)) "Select + Aggregate")
+  (expect (GroupBy
                    (Select
                     (Select Customer
                             (Function t (Greater 1 0)))
                     (Function t (Greater 1 0)))
-                   (Function 0) Count)) 1 "Select + Select + Aggregate")
+                   (Function 0) Count) '((1)) "Select + Select + Aggregate")
 
-  (expect (unpack (GroupBy
+  (expect (GroupBy
                    (Select
                     (Select Lineitem
                             (Where (Greater QUANTITY 15)))
                     (Where (Greater DISCOUNT 5)))
                    (Function 0)
                    Count
-                   )) 1 "TPC-H Q6 simplified")
+                   ) '((1)) "TPC-H Q6 simplified")
 
-  (expect (unpack (GroupBy
+  (expect (GroupBy
                    (Select Lineitem
                            (Where
                             (And
@@ -119,9 +114,9 @@
                             ))
                    (Function 0)
                    Count
-                   )) 1 "TPC-H Q6 simplified")
+                   ) '((1)) "TPC-H Q6 simplified")
 
-  (expect (unpack (GroupBy
+  (expect (GroupBy
                    (Select Lineitem
                            (Where
                             (And
@@ -130,23 +125,23 @@
                             ))
                    (Function 0)
                    Count
-                   )) 1 "TPC-H Q6 simplified")
+                   ) '((1)) "TPC-H Q6 simplified")
 
-  (expect (unpack (GroupBy
+  (expect (GroupBy
                    Lineitem
                    (Function 0)
                    (Sum QUANTITY)
-                   )) (+ 17 36 8) "TPC-H Q6 simplified")
+                   ) `((,(+ 17 36 8))) "TPC-H Q6 simplified")
 
-  (expect (unpack (GroupBy
+  (expect (GroupBy
                    (Project
                     Lineitem
                     (As revenue (Times EXTENDEDPRICE DISCOUNT)))
                    (Function 0)
                    (Sum revenue)
-                   )) 73204488 "TPC-H Q6 simplified")
+                   ) '((73204488)) "TPC-H Q6 simplified")
 
-  (expect (unpack (GroupBy
+  (expect (GroupBy
                    (Project
                     (Select Lineitem
                             (Where (And (Greater QUANTITY 25)
@@ -158,9 +153,9 @@
                     (As revenue (Times EXTENDEDPRICE DISCOUNT)))
                    (Function 0)
                    Count
-                   )) 1 "TPC-H Q6 simplified")
+                   ) '((1)) "TPC-H Q6 simplified")
 
-  (expect (unpack (GroupBy
+  (expect (GroupBy
                    (Project
                     (Select Lineitem
                             (Where (And (Greater QUANTITY 25)
@@ -172,9 +167,9 @@
                     (As revenue (Times EXTENDEDPRICE DISCOUNT)))
                    (Function 0) ;; everything goes in one group
                    (Sum revenue)
-                   )) 51019308 "TPC-H Q6")
+                   ) '((51019308)) "TPC-H Q6")
 
-  (expect (unpack (GroupBy
+  (expect (GroupBy
                    (Project
                     (Select Lineitem
                             (Where (And (Greater QUANTITY 25)
@@ -185,10 +180,10 @@
                                         )))
                     (As revenue (Times EXTENDEDPRICE DISCOUNT)))
                    (Sum revenue)
-                   )) 51019308 "TPC-H Q6")
+                   ) '( (51019308)) "TPC-H Q6")
 
 
-  (expect (unpack (Project
+  (expect (Project
                    (Select Lineitem
                            (Where (And (Greater QUANTITY 25)
                                        (Greater DISCOUNT 3)
@@ -196,16 +191,27 @@
                                        (Greater (UnixTime "1998-01-01") SHIPDATE)
                                        (Greater SHIPDATE (UnixTime "1996-03-08"))
                                        )))
-                   (As COMMENT COMMENT)))  "ly final dependencies: slyly bold" "projection")
+                   (As COMMENT COMMENT))  '(("ly final dependencies: slyly bold")) "projection")
 
 
-  (expect (unpack (Select Lineitem
+  (expect (Select Lineitem
                                (Where (And (Greater QUANTITY 25)
                                            (Greater DISCOUNT 3)
                                            (Greater 10 DISCOUNT)
                                            (Greater (UnixTime "1998-01-01") SHIPDATE)
                                            (Greater SHIPDATE (UnixTime "1996-03-08"))
                                            ))
-                               )) '(1 674 75 2 36 5668812 9 6 "N" "O" 829263600 825462000 829954800 "TAKE BACK RETURN" "MAIL" "ly final dependencies: slyly bold") "TPC-H Q6")
-#+end_src
+                               ) '((1 674 75 2 36 5668812 9 6 "N" "O" 829263600 825462000 829954800 "TAKE BACK RETURN" "MAIL" "ly final dependencies: slyly bold")) "TPC-H Q6")
 
+  (expect (length
+           (GroupBy Lineitem (By TAX) (Sum QUANTITY) ))
+          2 "Grouping Result Size")
+
+  (expect
+           (GroupBy Lineitem (By TAX) (Sum QUANTITY) )
+           '((25) (36)) "Grouping + Sum Results")
+
+  (expect
+           (GroupBy Lineitem (By TAX) Count )
+           '((2) (1)) "Grouping + Count Results")
+#+end_src
