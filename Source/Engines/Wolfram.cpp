@@ -125,6 +125,11 @@ struct EngineImplementation {
       WSGetInteger(link, &result);
       return result;
     }
+    if(resultType == WSTKREAL) {
+      float result = 0;
+      WSGetFloat(link, &result);
+      return result;
+    }
     if(resultType == WSTKFUNC) {
       auto const* resultHead = "";
       auto numberOfArguments = 0;
