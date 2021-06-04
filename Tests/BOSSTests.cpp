@@ -38,7 +38,7 @@ TEMPLATE_TEST_CASE("Basics", "[basics]", boss::engines::wolfram::Engine) { // NO
     auto const twoAndAHalf = 2.5F;
     auto const two = 2.0F;
     auto const quantum = 0.001F;
-    CHECK(fabs(get<float>(eval("Plus"_(twoAndAHalf, twoAndAHalf))) - two * twoAndAHalf) < quantum);
+    CHECK(std::fabs(get<float>(eval("Plus"_(twoAndAHalf, twoAndAHalf))) - two * twoAndAHalf) < quantum);
   }
 
   SECTION("Booleans") {
