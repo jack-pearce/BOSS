@@ -34,7 +34,12 @@ TEMPLATE_TEST_CASE("Basics", "[basics]", boss::engines::wolfram::Engine) { // NO
           "howdie world");
   }
 
-  SECTION("Floats") { CHECK(fabs(get<float>(eval("Plus"_(2.5F, 2.5F))) - 5.0F) < 0.1F); }
+  SECTION("Floats") {
+    auto const twoAndAHalf = 2.5F;
+    auto const two = 2.0F;
+    auto const quantum = 0.001F;
+    CHECK(fabs(get<float>(eval("Plus"_(twoAndAHalf, twoAndAHalf))) - two * twoAndAHalf) < quantum);
+  }
 
   SECTION("Booleans") {
     CHECK(get<bool>(eval("Greater"_(5, 2))));
