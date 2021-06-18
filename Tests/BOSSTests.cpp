@@ -101,7 +101,7 @@ TEMPLATE_TEST_CASE("Basics", "[basics]", boss::engines::wolfram::Engine) { // NO
 
   SECTION("Inserting") {
     eval("CreateTable"_("InsertTable"_, "duh"_));
-    eval("InsertInto"_("InsertTable"_, "Plus"_(1,2)));
+    eval("InsertInto"_("InsertTable"_, "Plus"_(1, 2)));
     REQUIRE(eval("Select"_("InsertTable"_, "Function"_(true))) == "List"_("List"_(3)));
   }
 
