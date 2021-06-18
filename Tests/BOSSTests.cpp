@@ -99,6 +99,12 @@ TEMPLATE_TEST_CASE("Basics", "[basics]", boss::engines::wolfram::Engine) { // NO
     }
   }
 
+  SECTION("Inserting") {
+    eval("CreateTable"_("InsertTable"_, "duh"_));
+    eval("InsertInto"_("InsertTable"_, "Plus"_(1,2)));
+    REQUIRE(eval("Select"_("InsertTable"_, "Function"_(true))) == "List"_("List"_(3)));
+  }
+
   SECTION("Relational (with multiple column types)") {
     eval("CreateTable"_("Customer"_, "ID"_, "FirstName"_, "LastName"_, "BirthYear"_, "Country"_));
     INFO(eval("Length"_("Select"_("Customer"_, "Function"_(true)))));
