@@ -95,7 +95,7 @@
  '((lambda ()
      (CreateTable Customer FirstName LastName age)
      (InsertInto  Customer "Holger" "German" 38)
-     (InsertInto  Customer "Dude" "Englishman" 9)
+     (InsertInto  Customer "Dude" "Englishman" (Interpolate FirstName))
      (InsertInto  Customer "Hubert" "Frenchman" 34)
      ))
  )

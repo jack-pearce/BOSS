@@ -234,12 +234,16 @@ struct EngineImplementation {
         "GetPersistentTableIfSymbol"_, {"Pattern"_("input"_, "Blank"_("Symbol"_))},
         "If"_("Greater"_("Length"_("Database"_("input"_)), 0),
               "MovingMap"_(
-                  "Function"_("ReplaceAll"_(
-                      "Part"_("Slot"_(1), 2),
-                      "Rule"_("KeyValuePattern"_("Rule"_(
-                                  "Pattern"_("attribute"_, "Blank"_()),
-                                  namespaced("Interpolate"_)("Pattern"_("by"_, "Blank"_())))),
-                              "Divide"_("Total"_("Drop"_("Slot"_(1), "List"_(2))), 2)))),
+                  "Function"_("Association"_("ReplaceAll"_(
+                      "Normal"_("Part"_("Slot"_(1), 2)),
+                      "RuleDelayed"_(
+                          "HoldPattern"_(
+                              "Rule"_("Pattern"_("attribute"_, "Blank"_()),
+                                      namespaced("Interpolate"_)("Pattern"_("by"_, "Blank"_())))),
+                          "Rule"_("attribute"_,
+                                  "Divide"_("Total"_("Map"_("Extract"_("Key"_("attribute"_)),
+                                                            ("Drop"_("Slot"_(1), "List"_(2))))),
+                                            2)))))),
                   "Database"_("input"_), "List"_(2, "Center"_, "Automatic"_), "Fixed"),
               "Database"_("input"_)));
     DefineFunction("GetPersistentTableIfSymbol"_, {"Pattern"_("input"_, "Blank"_())}, "input"_,

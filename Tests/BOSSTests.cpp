@@ -63,7 +63,9 @@ TEMPLATE_TEST_CASE("Basics", "[basics]", boss::engines::wolfram::Engine) { // NO
   }
 
   SECTION("Interpolation") {
-    auto thing = GENERATE(take(1, chunk(3, range(1, 4))));
+    auto thing = GENERATE(
+        take(1, chunk(3, filter([](int i) { return i % 2 == 1; }, random(1, 1000))))); // NOLINT
+    std::sort(begin(thing), end(thing));
     auto y = GENERATE(
         take(1, chunk(3, filter([](int i) { return i % 2 == 1; }, random(1, 1000))))); // NOLINT
 
@@ -73,6 +75,8 @@ TEMPLATE_TEST_CASE("Basics", "[basics]", boss::engines::wolfram::Engine) { // NO
     eval("InsertInto"_("InterpolationTable"_, thing[2], y[2]));
     REQUIRE(eval("Project"_("InterpolationTable"_, "As"_("y"_, "y"_))) ==
             "List"_("List"_(y[0]), "List"_((y[0] + y[2]) / 2), "List"_(y[2])));
+    REQUIRE(eval("Project"_("InterpolationTable"_, "As"_("x"_, "x"_))) ==
+            "List"_("List"_(thing[0]), "List"_(thing[1]), "List"_(thing[2])));
   }
 
   SECTION("Relational (simple)") {
