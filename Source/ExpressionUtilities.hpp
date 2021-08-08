@@ -24,12 +24,12 @@ public:
    */
   template <typename T>
   typename ExpressionSystem::Expression convertConstCharToStringAndOnToExpression(
-      std::enable_if_t<!std::is_same_v<T, char const*>, T> v) const {
+      std::enable_if_t<!std::is_same_v<T, char const*>, T const&> v) const {
     return typename ExpressionSystem::Expression(v);
   }
 
   template <typename... Ts>
-  typename ExpressionSystem::ComplexExpression operator()(Ts... args /*a*/) const {
+  typename ExpressionSystem::ComplexExpression operator()(Ts const&... args /*a*/) const {
     return typename ExpressionSystem::ComplexExpression{
         s, {convertConstCharToStringAndOnToExpression<decltype(args)>(args)...}};
   };

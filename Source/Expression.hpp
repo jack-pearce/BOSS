@@ -80,13 +80,8 @@ public:
   template <typename = std::enable_if<sizeof...(AdditionalCustomAtoms) != 0>, typename... T>
   explicit ComplexExpressionWithAdditionalCustomAtoms(
       ComplexExpressionWithAdditionalCustomAtoms<T...> const& other)
-      : head(other.getHead()), arguments([&other] {
-          ExpressionArgumentsWithAdditionalCustomAtoms<AdditionalCustomAtoms...> arguments;
-          for(auto const& it : other.getArguments()) {
-            arguments.push_back(it);
-          }
-          return arguments;
-        }()) {}
+      : head(other.getHead()), arguments(other.getArguments().begin(), other.getArguments().end()) {
+  }
   ExpressionArgumentsWithAdditionalCustomAtoms<AdditionalCustomAtoms...> const&
   getArguments() const {
     return arguments;
