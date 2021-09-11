@@ -1,8 +1,7 @@
-(Sort
+(Order
  (Group
   (Project
-   (
-    (Join
+   (Join
      'NATION
      (Join
       (Join
@@ -28,7 +27,6 @@
       )
      (Where (Equal 'S_NATIONKEY 'N_NATIONKEY))
      )
-    )
    (As 'nation 'N_NAME
        'o_year (Year 'O_ORDERDATE)
        'amount
@@ -36,8 +34,8 @@
                  (Multiply 'PS_SUPPLYCOST 'L_QUANTITY))
        )
    )
-  (By 'nation 'O_YEAR)
+  (By 'nation 'o_year)
   (Sum 'amount)
   )
- (By 'nation 'O_YEAR)
+ (By 'nation 'o_year)
  )

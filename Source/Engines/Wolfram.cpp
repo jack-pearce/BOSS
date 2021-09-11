@@ -305,7 +305,7 @@ struct EngineImplementation {
     DefineFunction("Top"_,
                    {"Pattern"_("input"_, "Blank"_()), "Pattern"_("orderFunction"_, "Blank"_()),
                     "Pattern"_("number"_, "Blank"_("Integer"_))},
-                   "TakeSmallestBy"_("input"_, "orderFunction"_, "number"_), {"HoldAll"_});
+                   "TakeSmallestBy"_("input"_, "orderFunction"_, "UpTo"_("number"_)), {"HoldAll"_});
 
     DefineFunction(
         "Join"_,
