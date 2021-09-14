@@ -13,21 +13,28 @@ std::string getRacketMacroShims() {
 (define (convert-to-boss-expression x)
   (match x
     [(list 'quote argument) (convert-to-boss-expression argument)]
-    [(list head arguments ...) (new-Expression (new-ComplexExpression head (map convert-to-boss-expression arguments)))]
+    [(list head arguments ...) (new-Expression
+      (new-ComplexExpression head (map convert-to-boss-expression arguments)))]
     [(and i (? integer?)) (new-Expression i)]
     [(and f (? real?)) (new-Expression f)]
     [(and s (? string?)) (new-Expression s)]
     [(and s (? symbol?)) (new-Expression
-                          (new-Symbol
-                           (first (string-split (symbol->string s) ":"))
-                           ))]
+      (if (string-contains? (symbol->string s) ":")
+        (new-ComplexExpression 'list
+          (map convert-to-boss-expression
+            (map string->symbol
+              (list (first (string-split (symbol->string s) ":"))
+                    (second (string-split (symbol->string s) ":"))))))
+        (new-Symbol (symbol->string s))
+      )
+    )]
     [_ 'unknown]
     )
   )
 (define-syntax-rule (define-operator name arguments ...)
   (define-syntax (name stx)
     (syntax-case stx ()
-      ((_ arguments ...) #'(evaluate (convert-to-boss-expression '(name arguments ...))) )
+      ((_ arguments ...) #'(evaluate (convert-to-boss-expression '(name arguments ...))))
       )
     ))
 (define-syntax-rule (define-operators '(name arguments ...) ...)
