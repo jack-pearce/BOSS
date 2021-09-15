@@ -2,31 +2,28 @@
  (Group
   (Project
    (Join
-     'NATION
+    'NATION
+    (Join
      (Join
+      'SUPPLIER
       (Join
-       'SUPPLIER
        (Join
-        (Join
-         (Select 'PART
-                 (Where (StringContains 'P_NAME "green")))
-         'PARTSUPP
-         (Where (Equal ps_partkey p_partkey))
-         )
-        'LINEITEM
-        (Where (And (Equal 'PS_PARTKEY 'L_PARTKEY)
-                    (Equal 'PS_SUPPKEY 'L_SUPPKEY)))
+        (Select 'PART
+                (Where (StringContains 'P_NAME "green")))
+        'PARTSUPP
+        (Where (Equal 'P_PARTKEY 'PS_PARTKEY))
         )
-       (Where (And
-               (Equal 'S_SUPPKEY 'L_SUPPKEY)
-               (Equal 'S_SUPPKEY 'L_SUPPKEY)
-               ))
+       'LINEITEM
+       (Where
+        (Equal (List 'PS_PARTKEY 'PS_SUPPKEY) (List 'L_PARTKEY 'L_SUPPKEY)))
        )
-      'ORDERS
-      (Where (Equal 'O_ORDERKEY 'L_ORDERKEY))
+      (Where (Equal 'S_SUPPKEY 'L_SUPPKEY))
       )
-     (Where (Equal 'S_NATIONKEY 'N_NATIONKEY))
+     'ORDERS
+     (Where (Equal 'L_ORDERKEY 'O_ORDERKEY))
      )
+    (Where (Equal 'N_NATIONKEY 'S_NATIONKEY))
+    )
    (As 'nation 'N_NAME
        'o_year (Year 'O_ORDERDATE)
        'amount
