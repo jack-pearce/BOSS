@@ -216,7 +216,7 @@ struct EngineImplementation {
 
   void loadRelationalOperators() {
     DefineFunction("Where"_, {"Pattern"_("condition"_, "Blank"_())},
-                   "Function"_("tuple"_, "ReplaceAll"_("condition"_, "tuple"_)), {"HoldFirst"_});
+                   "Function"_("tuple"_, "ReplaceAll"_("Unevaluated"_("condition"_), "tuple"_)), {"HoldFirst"_});
 
     DefineFunction("Column"_, {"Pattern"_("input"_, "Blank"_()), "Pattern"_("column"_, "Blank"_())},
                    "Extract"_("input"_, "column"_), {"HoldFirst"_});
@@ -446,6 +446,7 @@ struct EngineImplementation {
       evalWithoutNamespace("Set"_(namespaced(Symbol(it)), Symbol("System`" + it)));
     }
     evalWithoutNamespace("Set"_(namespaced("Date"_), "System`DateObject"_));
+    evalWithoutNamespace("Set"_(namespaced("StringContains"_), "System`StringContainsQ"_));
 
     DefineFunction("Function"_,
                    {"Pattern"_("arg"_, "Blank"_()), "Pattern"_("definition"_, "Blank"_())},
