@@ -216,7 +216,8 @@ struct EngineImplementation {
 
   void loadRelationalOperators() {
     DefineFunction("Where"_, {"Pattern"_("condition"_, "Blank"_())},
-                   "Function"_("tuple"_, "ReplaceAll"_("Unevaluated"_("condition"_), "tuple"_)), {"HoldFirst"_});
+                   "Function"_("tuple"_, "ReplaceAll"_("Unevaluated"_("condition"_), "tuple"_)),
+                   {"HoldFirst"_});
 
     DefineFunction("Column"_, {"Pattern"_("input"_, "Blank"_()), "Pattern"_("column"_, "Blank"_())},
                    "Extract"_("input"_, "column"_), {"HoldFirst"_});
