@@ -15,13 +15,12 @@
       (As 'INNER_L_ORDERKEY 'L_ORDERKEY)
       )
      'LINEITEM
-     (Where (Equals 'L_ORDERKEY 'INNER_L_ORDERKEY))
+     (Where (Equal 'INNER_L_ORDERKEY 'L_ORDERKEY))
      )
     'ORDERS
-    (Where (Equals 'O_ORDERKEY 'L_ORDERKEY))
-    )
+    (Where (Equal 'L_ORDERKEY 'O_ORDERKEY)))
    'CUSTOMER
-   (Where (Equals 'C_CUSTKEY 'O_CUSTKEY))
+   (Where (Equal 'O_CUSTKEY 'C_CUSTKEY))
    )
   (By 'C_NAME 'C_CUSTKEY 'O_ORDERKEY 'O_ORDERDATE 'O_TOTALPRICE)
   (Sum 'L_QUANTITY)
