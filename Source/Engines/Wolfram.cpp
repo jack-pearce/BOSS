@@ -276,27 +276,32 @@ struct EngineImplementation {
         "With"_(
             "List"_("Set"_("input"_, namespaced("GetPersistentTableIfSymbol"_)("inputName"_))),
 
-            "Values"_("GroupBy"_(
-                "input"_, "groupFunction"_,
-                "Function"_(
-                    "groupedInput"_,
-                    "Merge"_(
-                        "Map"_(
-                            "Function"_(
-                                "aggregateFunction"_,
-                                "Construct"_(
-                                    "Switch"_(
-                                        "aggregateFunction"_, namespaced("Count"_),
-                                        "Composition"_(
-                                            "Association"_,
-                                            "Construct"_("CurryApplied"_("Rule"_, 2), "Count"_),
-                                            "Length"_),
-                                        "Blank"_(),
-                                        "Composition"_("Fold"_("Plus"_),
-                                                       "Apply"_("KeyTake"_, "aggregateFunction"_))),
-                                    "groupedInput"_)),
-                            "List"_("aggregateFunctions"_)),
-                        "First"_))))));
+            "KeyValueMap"_(
+                "Function"_("List"_("groupkey"_, "groupresult"_),
+                            "Append"_("groupresult"_,
+                                      "Thread"_("Rule"_("Extract"_("groupFunction"_, "List"_(2, 1)),
+                                                        "groupkey"_)))),
+                "GroupBy"_(
+                    "input"_, "groupFunction"_,
+                    "Function"_(
+                        "groupedInput"_,
+                        "Merge"_("Map"_("Function"_(
+                                            "aggregateFunction"_,
+                                            "Construct"_(
+                                                "Switch"_(
+                                                    "aggregateFunction"_, namespaced("Count"_),
+                                                    "Composition"_(
+                                                        "Association"_,
+                                                        "Construct"_("CurryApplied"_("Rule"_, 2),
+                                                                     "Count"_),
+                                                        "Length"_),
+                                                    "Blank"_(),
+                                                    "Composition"_("Fold"_("Plus"_),
+                                                                   "Apply"_("KeyTake"_,
+                                                                            "aggregateFunction"_))),
+                                                "groupedInput"_)),
+                                        "List"_("aggregateFunctions"_)),
+                                 "First"_))))));
 
     DefineFunction(
         "Group"_, {"Pattern"_("input"_, "Blank"_()), "Pattern"_("aggregateFunction"_, "Blank"_())},
@@ -340,7 +345,7 @@ struct EngineImplementation {
                                                                                  "buildTuple"_),
                                                                    "Function"_("List"_())),
                                                              "buildTuple"_)))),
-                       "leftInput"_),
+                       namespaced("GetPersistentTableIfSymbol"_)("leftInput"_)),
                 "Flatten"_(
                     "Map"_(
                         "Function"_(
@@ -350,7 +355,7 @@ struct EngineImplementation {
                                        "Merge"_("List"_("probeTuple"_, "buildTuple"_), "First"_)),
                                    "ht"_("Lookup", "ReplaceAll"_("rightAttribute"_, "probeTuple"_),
                                          "Function"_("List"_())))),
-                        "rightInput"_),
+                        namespaced("GetPersistentTableIfSymbol"_)("rightInput"_)),
                     1))));
   }
 
