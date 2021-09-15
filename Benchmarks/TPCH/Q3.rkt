@@ -13,19 +13,19 @@
       (Where
        (Greater
         (Date "1995-03-15")
-        (Date 'O_ORDERDATE))
+        'O_ORDERDATE)
        )
       )
      (Select
       'LINEITEM
       (Where
        (Greater
-        (Date 'L_SHIPDATE)
+        'L_SHIPDATE
         (Date "1995-03-22")
         )
        )
       )
-     (Where (Equal 'L_ORDERKEY 'O_ORDERKEY))
+     (Where (Equal 'O_ORDERKEY 'L_ORDERKEY))
      
      )
     (Where (Equal 'C_CUSTKEY 'O_CUSTKEY))
