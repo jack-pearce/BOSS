@@ -323,6 +323,35 @@ struct EngineImplementation {
                                       namespaced("GetPersistentTableIfSymbol"_)("right"_), 1),
                              1),
                   "predicate"_));
+
+    DefineFunction(
+        "Join"_,
+        {"Pattern"_("leftInput"_, "Blank"_()), "Pattern"_("rightInput"_, "Blank"_()),
+         namespaced("Where"_)(namespaced("Equal"_)("Pattern"_("leftAttribute"_, "Blank"_()),
+                                                   "Pattern"_("rightAttribute"_, "Blank"_())))},
+        "With"_(
+            "List"_("Set"_("ht"_, "CreateDataStructure"_("HashTable"))),
+            "CompoundExpression"_(
+                "Map"_("Function"_(
+                           "buildTuple"_,
+                           "ht"_("Insert", "Rule"_("ReplaceAll"_("leftAttribute"_, "buildTuple"_),
+                                                   "Append"_("ht"_("Lookup",
+                                                                   "ReplaceAll"_("leftAttribute"_,
+                                                                                 "buildTuple"_),
+                                                                   "Function"_("List"_())),
+                                                             "buildTuple"_)))),
+                       "leftInput"_),
+                "Flatten"_(
+                    "Map"_(
+                        "Function"_(
+                            "probeTuple"_,
+                            "Map"_("Function"_(
+                                       "buildTuple"_,
+                                       "Merge"_("List"_("probeTuple"_, "buildTuple"_), "First"_)),
+                                   "ht"_("Lookup", "ReplaceAll"_("rightAttribute"_, "probeTuple"_),
+                                         "Function"_("List"_())))),
+                        "rightInput"_),
+                    1))));
   }
 
   void loadDataLoadingOperators() {
