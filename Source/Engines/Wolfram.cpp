@@ -391,7 +391,7 @@ struct EngineImplementation {
         "CompoundExpression"_(
             "Set"_("Database"_("relation"_), "List"_()),
             "Set"_("Schema"_("relation"_),
-                   "Map"_("Function"_("a"_, "If"_("Equal"_(namespaced("List"_), "Head"_("a"_)),
+                   "Map"_("Function"_("a"_, "If"_("SameQ"_(namespaced("List"_), "Head"_("a"_)),
                                                   "a"_, "List"_("a"_))),
                           "List"_("attributes"_)))),
         {"HoldFirst"_});
