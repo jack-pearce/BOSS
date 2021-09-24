@@ -305,10 +305,10 @@ struct EngineImplementation {
                                  "First"_))))));
 
     DefineFunction(
-        "Group"_, {"Pattern"_("inputName"_, "Blank"_()), "Pattern"_("aggregateFunction"_, "Blank"_())},
+        "Group"_,
+        {"Pattern"_("inputName"_, "Blank"_()), "Pattern"_("aggregateFunction"_, "Blank"_())},
         "With"_("List"_("Set"_("input"_, namespaced("GetPersistentTableIfSymbol"_)("inputName"_))),
-                "List"_
-                ("Merge"_(
+                "List"_("Merge"_(
                     "Map"_("Function"_(
                                "aggregateFunction"_,
                                "Construct"_(
