@@ -53,21 +53,16 @@ char const* bossSymbolToNewString(BOSSSymbol const* arg) {
  *     bool = 0, int = 1, float = 2 , std::string = 3, Symbol = 4 , ComplexExpression = 5
  */
 size_t getBOSSExpressionTypeID(BOSSExpression const* arg) {
+  static_assert(std::is_same_v<bool, std::variant_alternative_t<0, boss::Expression::SuperType>>);
+  static_assert(std::is_same_v<int, std::variant_alternative_t<1, boss::Expression::SuperType>>);
+  static_assert(std::is_same_v<float, std::variant_alternative_t<2, boss::Expression::SuperType>>);
   static_assert(
-      std::is_same_v<
-          bool, std::variant_alternative_t<0, boss::DefaultExpressionSystem::AtomicExpression>>);
+      std::is_same_v<std::string, std::variant_alternative_t<3, boss::Expression::SuperType>>);
   static_assert(
-      std::is_same_v<
-          int, std::variant_alternative_t<1, boss::DefaultExpressionSystem::AtomicExpression>>);
+      std::is_same_v<boss::Symbol, std::variant_alternative_t<4, boss::Expression::SuperType>>);
   static_assert(
-      std::is_same_v<
-          float, std::variant_alternative_t<2, boss::DefaultExpressionSystem::AtomicExpression>>);
-  static_assert(std::is_same_v<
-                std::string,
-                std::variant_alternative_t<3, boss::DefaultExpressionSystem::AtomicExpression>>);
-  static_assert(std::is_same_v<
-                boss::Symbol,
-                std::variant_alternative_t<4, boss::DefaultExpressionSystem::AtomicExpression>>);
+      std::is_same_v<boss::ComplexExpression,
+                     std::variant_alternative_t<5, boss::Expression::SuperType>>); // NOLINT
   return arg->delegate.index();
 }
 
