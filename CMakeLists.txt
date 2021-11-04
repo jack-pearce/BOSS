@@ -80,10 +80,10 @@ endif(NOT Python3_FOUND)
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
 
-#################################### Backends ####################################
+#################################### Engines ####################################
 
 # Wolfram BOSS
-add_library(WolframBOSS STATIC Source/Engines/Wolfram.cpp ${ImplementationFiles})
+add_library(WolframBOSS MODULE Source/Engines/Wolfram.cpp ${ImplementationFiles})
 if(Mathematica_WSTP_FOUND)
   target_include_directories(WolframBOSS PUBLIC ${Mathematica_INCLUDE_DIRS})
   target_link_libraries(WolframBOSS ${Mathematica_WSTP_LIBRARY})
@@ -99,7 +99,7 @@ if(Mathematica_WSTP_FOUND)
   endif(WIN32)
 endif(Mathematica_WSTP_FOUND)
 
-list(APPEND AllBackends WolframBOSS)
+list(APPEND AllTargets WolframBOSS)
 
 ############################ Backends Common Properties ############################
 
@@ -208,23 +208,21 @@ foreach (Target IN LISTS AllTargets)
   target_include_directories(${Target} SYSTEM PUBLIC ${BOSS_BINARY_DIR}/deps/include)
   if(UNIX AND NOT APPLE)
     target_link_libraries(${Target} rt)
+    target_link_libraries(${Target} dl)
   endif() 
-  # Link backends to targets
-  foreach (Target IN LISTS AllTargets)
-    foreach (Backend IN LISTS AllBackends)
-      target_link_libraries(${Target} ${Backend})
-    endforeach()
-  endforeach()
 endforeach()
 
-install(TARGETS BOSS LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)
-install(FILES
-  ${CMAKE_CURRENT_SOURCE_DIR}/Source/BOSS.hpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/Source/Engine.hpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/Source/Expression.hpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/Source/ExpressionUtilities.hpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/Source/Utilities.hpp
- DESTINATION include/BOSS)
-install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/Source/Engines/Wolfram.hpp DESTINATION include/BOSS/Engines)
+
+#################################### Install ###################################
+set_target_properties(BOSS PROPERTIES PUBLIC_HEADER "${CMAKE_CURRENT_SOURCE_DIR}/Source/BOSS.hpp;${CMAKE_CURRENT_SOURCE_DIR}/Source/Engine.hpp;${CMAKE_CURRENT_SOURCE_DIR}/Source/Expression.hpp;${CMAKE_CURRENT_SOURCE_DIR}/Source/ExpressionUtilities.hpp;${CMAKE_CURRENT_SOURCE_DIR}/Source/Utilities.hpp")
+
+install(TARGETS BOSS LIBRARY DESTINATION lib PUBLIC_HEADER DESTINATION include)
+set_target_properties(WolframBOSS PROPERTIES INSTALL_RPATH_USE_LINK_PATH TRUE)
+install(TARGETS WolframBOSS LIBRARY DESTINATION lib)
+install(TARGETS Tests RUNTIME DESTINATION bin)
+install(FILES Source/Shims/BOSS.rkt Server/Server.rkt DESTINATION bin)
+install(DIRECTORY ${BOSS_BINARY_DIR}/deps/include/spdlog DESTINATION include)
+
+
 
 
