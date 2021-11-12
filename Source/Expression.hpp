@@ -57,8 +57,7 @@ public:
                 o)) {}
   ~ExpressionWithAdditionalCustomAtoms() = default;
   ExpressionWithAdditionalCustomAtoms(ExpressionWithAdditionalCustomAtoms&&) noexcept = default;
-  ExpressionWithAdditionalCustomAtoms(ExpressionWithAdditionalCustomAtoms const&) noexcept =
-      default;
+  ExpressionWithAdditionalCustomAtoms(ExpressionWithAdditionalCustomAtoms const&) = default;
   ExpressionWithAdditionalCustomAtoms&
   operator=(ExpressionWithAdditionalCustomAtoms const&) = default;
   ExpressionWithAdditionalCustomAtoms&
@@ -92,8 +91,8 @@ public:
   ~ComplexExpressionWithAdditionalCustomAtoms() = default;
   ComplexExpressionWithAdditionalCustomAtoms(
       ComplexExpressionWithAdditionalCustomAtoms&&) noexcept = default;
-  ComplexExpressionWithAdditionalCustomAtoms(
-      ComplexExpressionWithAdditionalCustomAtoms const&) noexcept = default;
+  ComplexExpressionWithAdditionalCustomAtoms(ComplexExpressionWithAdditionalCustomAtoms const&) =
+      default;
   ComplexExpressionWithAdditionalCustomAtoms&
   operator=(ComplexExpressionWithAdditionalCustomAtoms const&) = default;
   ComplexExpressionWithAdditionalCustomAtoms&

@@ -2,6 +2,7 @@
 #include "../Source/BOSS.hpp"
 #include "../Source/BootstrapEngine.hpp"
 #include "../Source/ExpressionUtilities.hpp"
+#include <arrow/array.h>
 #include <catch2/catch.hpp>
 #include <variant>
 using boss::Expression;
@@ -10,13 +11,13 @@ using std::string;
 using boss::utilities::operator""_;
 using Catch::Generators::random;
 using Catch::Generators::take;
+using std::vector;
 
 static std::vector<string>
     librariesToTest{}; // NOLINT(cppcoreguidelines-avoid-non-const-global-variables)
 
 TEST_CASE("Basics", "[basics]") { // NOLINT
-  boss::BootstrapEngine engine = {};
-  auto eval = [&](boss::Expression const& expression) mutable {
+  auto eval = [engine = boss::BootstrapEngine()](boss::Expression const& expression) mutable {
     return engine.evaluate("EvaluateInEngine"_(GENERATE(from_range(librariesToTest)), expression));
   };
 
@@ -195,6 +196,66 @@ TEST_CASE("Basics", "[basics]") { // NOLINT
                            1),
                 1))) == 1);
     }
+  }
+}
+
+TEST_CASE("Arrays", "[arrays]") { // NOLINT
+  auto engine = boss::BootstrapEngine();
+  namespace nasty = boss::utilities::nasty;
+  auto eval = [&engine](boss::Expression const& expression) mutable {
+    return engine.evaluate("EvaluateInEngine"_(GENERATE(from_range(librariesToTest)), expression));
+  };
+
+  std::vector<int32_t> ints{10, 20, 30, 40, 50}; // NOLINT
+  std::shared_ptr<arrow::Array> arrayPtr(
+      new arrow::Int32Array((long long)ints.size(), arrow::Buffer::Wrap(ints)));
+
+  auto arrayPtrExpr = nasty::arrowArrayToExpression(arrayPtr);
+  eval("CreateTable"_("Thingy"_, "Value"_));
+  eval("AttachColumns"_("Thingy"_, arrayPtrExpr));
+
+  SECTION("ArrowArrays") {
+    CHECK(get<int>(eval("Extract"_(arrayPtrExpr, 1))) == 10);
+    CHECK(get<int>(eval("Extract"_(arrayPtrExpr, 2))) == 20);
+    CHECK(get<int>(eval("Extract"_(arrayPtrExpr, 3))) == 30);
+    CHECK(get<int>(eval("Extract"_(arrayPtrExpr, 4))) == 40);
+    CHECK(get<int>(eval("Extract"_(arrayPtrExpr, 5))) == 50);
+    CHECK(eval(arrayPtrExpr) == "List"_(10, 20, 30, 40, 50));
+  }
+
+  auto compareColumn = [&eval](boss::Expression const& expression, auto const& results) {
+    for(auto i = 0; i < results.size(); i++) {
+      CHECK(get<typename std::remove_reference_t<decltype(results)>::value_type>(
+                eval("Extract"_("Extract"_(expression, i + 1), 1))) == results[i]);
+    }
+  };
+
+  SECTION("Plus") {
+    compareColumn("Project"_("Thingy"_, "As"_("Result"_, "Plus"_("Value"_, "Value"_))),
+                  vector<int>{20, 40, 60, 80, 100}); // NOLINT(readability-magic-numbers)
+    compareColumn("Project"_("Thingy"_, "As"_("Result"_, "Plus"_("Value"_, 1))),
+                  vector<int>{11, 21, 31, 41, 51}); // NOLINT(readability-magic-numbers)
+  }
+
+  SECTION("Greater") {
+    compareColumn(
+        "Project"_("Thingy"_,
+                   "As"_("Result"_, "Greater"_("Value"_, 25))), // NOLINT(readability-magic-numbers)
+        vector<bool>{false, false, true, true, true});
+    compareColumn(
+        "Project"_("Thingy"_,
+                   "As"_("Result"_, "Greater"_(45, "Value"_))), // NOLINT(readability-magic-numbers)
+        vector<bool>{true, true, true, true, false});
+  }
+
+  SECTION("Logic") {
+    compareColumn(
+        "Project"_(
+            "Thingy"_,
+            "As"_("Result"_, "And"_("Greater"_("Value"_, 25), // NOLINT(readability-magic-numbers)
+                                    "Greater"_(45, "Value"_)  // NOLINT(readability-magic-numbers)
+                                    ))),
+        vector<bool>{false, false, true, true, false});
   }
 }
 
