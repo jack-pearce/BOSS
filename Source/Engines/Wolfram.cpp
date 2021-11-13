@@ -59,8 +59,8 @@ private:
 
 struct EngineImplementation {
   constexpr static char const* const DefaultNamespace = "BOSS`";
-  WSENV environment = {};
-  WSLINK link = {};
+  WSENV const environment = {}; // NOLINT(misc-misplaced-const)
+  WSLINK const link = {};       // NOLINT(misc-misplaced-const)
 
   static char const* removeNamespace(char const* symbolName) {
     if(strncmp(DefaultNamespace, symbolName, strlen(DefaultNamespace)) == 0) {
@@ -521,23 +521,28 @@ struct EngineImplementation {
     loadSymbolicOperators();
   };
 
-  EngineImplementation() {
-    environment = WSInitialize(nullptr);
-    if(environment == nullptr) {
-      throw std::runtime_error("could not initialize wstp environment");
-    }
-    auto error = 0;
-    link = WSOpenString(
-        environment,
-        "-linkmode launch -linkname \"" STRING(MATHEMATICA_KERNEL_EXECUTABLE) "\" -wstp", &error);
-    if(error != 0) {
-      throw std::runtime_error("could not open wstp link -- error code: " + to_string(error));
-    }
-  }
+  EngineImplementation()
+      : environment([] {
+          if(auto* environment = WSInitialize(nullptr)) {
+            return environment;
+          }
+          throw std::runtime_error("could not initialize wstp environment");
+        }()),
+        link([this] {
+          auto error = 0;
+          auto* link = WSOpenString(
+              environment,
+              "-linkmode launch -linkname \"" STRING(MATHEMATICA_KERNEL_EXECUTABLE) "\" -wstp",
+              &error);
+          if(error != 0) {
+            throw std::runtime_error("could not open wstp link -- error code: " + to_string(error));
+          }
+          return link;
+        }()) {}
 
   EngineImplementation(EngineImplementation&&) = default;
   EngineImplementation(EngineImplementation const&) = delete;
-  EngineImplementation& operator=(EngineImplementation&&) = default;
+  EngineImplementation& operator=(EngineImplementation&&) = delete;
   EngineImplementation& operator=(EngineImplementation const&) = delete;
 
   ~EngineImplementation() {
