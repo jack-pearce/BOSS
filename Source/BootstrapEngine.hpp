@@ -1,5 +1,6 @@
 #include "BOSS.hpp"
 #include "Expression.hpp"
+#include "ExpressionUtilities.hpp"
 #include "Utilities.hpp"
 #include <algorithm>
 #include <dlfcn.h>
@@ -7,6 +8,9 @@
 #include <numeric>
 #include <unordered_map>
 #include <unordered_set>
+#include <variant>
+
+using boss::utilities::operator""_;
 
 namespace boss {
 class BootstrapEngine : public boss::Engine {
@@ -44,11 +48,13 @@ class BootstrapEngine : public boss::Engine {
     LibraryCache& operator=(LibraryCache&&) = delete;
 
   } libraries;
+  std::optional<std::string> defaultEngine = {};
 
   std::unordered_map<boss::Symbol,
                      std::function<boss::Expression(boss::ComplexExpression const&)>> const
       registeredOperators = {
-          {boss::Symbol("EvaluateInEngine"), [this](auto const& e) -> boss::Expression {
+          {boss::Symbol("EvaluateInEngine"),
+           [this](auto const& e) -> boss::Expression {
              return std::accumulate(
                  next(begin(e.getArguments())), end(e.getArguments()), boss::Expression(0),
                  [processArgumentInEngine =
@@ -67,7 +73,23 @@ class BootstrapEngine : public boss::Engine {
                    return std::visit(processArgumentInEngine,
                                      (boss::Expression::SuperType const&)argument);
                  });
+           }},
+          {boss::Symbol("SetDefaultEngine"), [this](auto const& expression) -> boss::Expression {
+             defaultEngine = std::get<std::string>(
+                 std::get<boss::ComplexExpression>((boss::Expression::SuperType const&)expression)
+                     .getArguments()
+                     .at(0));
+             return "okay";
            }}};
+  bool isBootstrapCommand(boss::Expression const& expression) {
+    return std::visit(utilities::overload(
+                          [this](boss::ComplexExpression const& expression) {
+                            return registeredOperators.count(expression.getHead()) > 0;
+                          },
+                          [](auto const& /* unused */
+                          ) { return false; }),
+                      expression);
+  }
 
 public:
   BootstrapEngine() = default;
@@ -81,12 +103,15 @@ public:
     auto evaluatedArguments = decltype(eIn.getArguments()){};
     std::transform(begin(eIn.getArguments()), end(eIn.getArguments()),
                    std::back_inserter(evaluatedArguments),
-                   [&](auto const& e) { return evaluate(e); });
+                   [&](auto const& e) { return evaluate(e, false); });
     return boss::ComplexExpression(eIn.getHead(), evaluatedArguments);
   }
 
   // NOLINTNEXTLINE(readability-convert-member-functions-to-static)
-  boss::Expression evaluate(boss::Expression const& e) {
+  boss::Expression evaluate(boss::Expression const& e, bool isRootExpression = true) {
+    auto const& wrappedE = isRootExpression && defaultEngine.has_value() && !isBootstrapCommand(e)
+                               ? "EvaluateInEngine"_(*defaultEngine, e)
+                               : e;
     return std::visit(boss::utilities::overload(
                           [this](boss::ComplexExpression const& unevaluatedE) -> boss::Expression {
                             return (registeredOperators.count(unevaluatedE.getHead()) == 0)
@@ -95,7 +120,7 @@ public:
                                              evaluateArguments(unevaluatedE));
                           },
                           [](auto& e) -> boss::Expression { return e; }),
-                      (boss::Expression::SuperType const&)e);
+                      (boss::Expression::SuperType const&)wrappedE);
   }
 };
 
