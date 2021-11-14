@@ -258,6 +258,7 @@ install(TARGETS WolframBOSS LIBRARY DESTINATION lib)
 install(TARGETS Tests RUNTIME DESTINATION bin)
 install(FILES Source/Shims/BOSS.rkt Server/Server.rkt DESTINATION bin)
 install(DIRECTORY ${BOSS_BINARY_DIR}/deps/include/spdlog DESTINATION include)
+install(DIRECTORY ${BOSS_BINARY_DIR}/deps/include/arrow DESTINATION include)
 
 
 
