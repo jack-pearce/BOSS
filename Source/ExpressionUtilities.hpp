@@ -1,7 +1,12 @@
 #pragma once
 #include "Expression.hpp"
 #include <arrow/array.h>
+#include <map>
 #include <ostream>
+#include <sstream>
+#include <typeindex>
+#include <typeinfo>
+#include <utility>
 
 namespace boss::utilities {
 template <typename ExpressionSystem = DefaultExpressionSystem> class ExtensibleExpressionBuilder {
@@ -111,3 +116,36 @@ static std::ostream& operator<<(std::ostream& out, boss::ComplexExpression const
   out << "]";
   return out;
 }
+
+namespace boss {
+class bad_variant_access : public std::bad_variant_access {
+  std::string const whatString;
+
+public:
+  explicit bad_variant_access(std::string const& whatString) : whatString(whatString) {}
+  const char* what() const noexcept override { return whatString.c_str(); }
+};
+
+template <typename T, typename TInput> auto&& get(TInput&& v) {
+  try {
+    return std::move(std::get<T>(std::forward<TInput>(v)));
+  } catch(std::bad_variant_access const& e) {
+    std::stringstream s;
+    s << "expected and actual type mismatch in expression \"";
+    if(!v.valueless_by_exception()) {
+      s << v;
+    } else {
+      s << "valueless by exception";
+    }
+    static auto typenames = std::map<std::type_index, char const*>{{typeid(int), "int"},
+                                                                   {typeid(Symbol), "Symbol"},
+                                                                   {typeid(bool), "bool"},
+                                                                   {typeid(float), "float"},
+                                                                   {typeid(std::string), "string"}};
+    s << "\", expected "
+      << (typenames.count(typeid(T)) ? typenames.at(typeid(T)) : typeid(T).name());
+    throw bad_variant_access(s.str());
+  }
+};
+
+} // namespace boss

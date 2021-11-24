@@ -90,11 +90,11 @@ class BootstrapEngine : public boss::Engine {
   std::optional<std::string> defaultEngine = {};
 
   std::unordered_map<boss::Symbol, std::function<boss::Expression(boss::ComplexExpression&&)>> const
-      registeredOperators = {
+      registeredOperators{
           {boss::Symbol("EvaluateInEngine"),
            [this](auto&& e) -> boss::Expression {
              auto sym = reinterpret_cast<BOSSExpression* (*)(BOSSExpression*)>(
-                 libraries.at(std::get<std::string>(e.getArguments().at(0))).evaluateFunction);
+                 libraries.at(boss::get<std::string>(e.getArguments().at(0))).evaluateFunction);
              auto processArgumentInEngine = [&sym](auto&& e) {
                auto wrapper = BOSSExpression{std::forward<decltype(e)>(e)};
                auto* r = sym(&wrapper);
@@ -103,7 +103,8 @@ class BootstrapEngine : public boss::Engine {
                return result;
              };
              return std::accumulate(
-                 std::make_move_iterator(e.getArguments().begin()),
+                 std::make_move_iterator(
+                     next(e.getArguments().begin())), // Note: first argument is the engine path
                  std::make_move_iterator(e.getArguments().end()), boss::Expression(0),
                  [&processArgumentInEngine](auto&& /* we evaluate all arguments
                                                    but only return the last result */
@@ -114,7 +115,7 @@ class BootstrapEngine : public boss::Engine {
                  });
            }},
           {boss::Symbol("SetDefaultEngine"), [this](auto&& expression) -> boss::Expression {
-             defaultEngine = std::get<std::string>(std::move(expression.getArguments().at(0)));
+             defaultEngine = boss::get<std::string>(std::move(expression.getArguments().at(0)));
              return "okay";
            }}};
   bool isBootstrapCommand(boss::Expression const& expression) {
