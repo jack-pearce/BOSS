@@ -28,7 +28,7 @@ BOSSExpression* floatToNewBOSSExpression(float i) {
   return new BOSSExpression{boss::Expression(i)};
 }
 BOSSExpression* stringToNewBOSSExpression(char const* i) {
-  return new BOSSExpression{boss::Expression(i)};
+  return new BOSSExpression{boss::Expression(std::string(i))};
 }
 BOSSExpression* bossSymbolNameToNewBOSSExpression(char const* i) {
   return new BOSSExpression{boss::Expression(boss::Symbol(i))};
