@@ -36,6 +36,7 @@ public:
 
 template <typename Scalar> struct Span {
 private: // state
+  using element_type = Scalar;
   void* adapteePayload = {};
   std::function<void(void*)> destructor;
 
