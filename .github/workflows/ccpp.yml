@@ -13,22 +13,23 @@ jobs:
   format-check:
     runs-on: self-hosted
     container:
-      image: docker.pkg.github.com/little-big-h/buildenvironment/image:latest
+      image: docker.pkg.github.com/little-big-h/buildenvironment/ubuntubased
       credentials:
          username: ${{ github.actor }}
          password: ${{ secrets.GITHUB_TOKEN }}
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
       with:
         submodules: true
     - name: check
       run: |
+        /usr/bin/git config --global --add safe.directory $GITHUB_WORKSPACE
         find . \( -name '*.cpp' -or -name '*.hpp' \) -exec clang-format -i -style=file '{}' ';'
         git status -s
         exit $(git status -s | wc -l)
 
   build:
-    runs-on: self-hosted
+    runs-on: [self-hosted, X64]
     strategy:
       matrix:
         build-type: [Release, Debug, Sanitize]
@@ -48,7 +49,8 @@ jobs:
         CXX=clang++-11 CC=clang-11 cmake -DCMAKE_INSTALL_PREFIX=../install -DRacket_ROOT=/usr -DCMAKE_BUILD_TYPE=${{ matrix.build-type }} -DCMAKE_CXX_FLAGS:STRING="-std=c++17" -DCMAKE_CXX_CLANG_TIDY=clang-tidy-11 ..
         cd ..
     - name: build
-      run: cmake --build ${{ matrix.build-type }} -- -j $(nproc)
+      run: |
+        cmake --build ${{ matrix.build-type }} -- -j $(nproc)
     - name: install
       run: cmake --build ${{ matrix.build-type }} --target install
     - name: Upload artifact

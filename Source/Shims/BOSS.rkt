@@ -108,7 +108,7 @@
     ['double (getDoubleValueFromExpression x)]
     ['string (let ([r (getStringValueFromExpression x)])
                r) ]
-    ['symbol (getSymbolNameFromExpression x)]
+    ['symbol (string->symbol (getSymbolNameFromExpression x))]
     ['complexExpression
      (let ([arguments (map convert-from-boss-expression
                            (ptr-ref
@@ -164,8 +164,8 @@
   '(Schema input)
   '(Assuming input assumption ...)
   '(Top input predicate number)
-  '(EvaluateInEngine pathToLibrary expression ...)
-  '(SetDefaultEngine pathToLibrary)
+  '(EvaluateInEngines enginePipelineLibraryPathList expression ...)
+  '(SetDefaultEnginePipeline pathToLibrary ...)
   )
 
 (provide main)
