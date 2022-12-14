@@ -36,7 +36,6 @@ public:
 
 template <typename Scalar> struct Span {
 private: // state
-  using element_type = Scalar;
   void* adapteePayload = {};
   std::function<void(void*)> destructor;
 
@@ -49,6 +48,7 @@ private: // state
   IteratorType _end = {};
 
 public: // surface
+  using element_type = Scalar;
   size_t size() const { return _end - _begin; }
   constexpr auto operator[](size_t i) const -> decltype(auto) { return *(_begin + i); }
   constexpr auto operator[](size_t i) -> decltype(auto) { return *(_begin + i); }
