@@ -69,6 +69,17 @@ public: // surface
     }
     throw std::out_of_range("Span has no element with index " + std::to_string(i));
   }
+
+  constexpr Span<Scalar> subspan(size_t offset, size_t size) && {
+    _begin += offset;
+    _end = _begin + size;
+    return std::move(*this);
+  }
+
+  constexpr Span<Scalar> subspan(size_t offset) && {
+    return std::move(*this).subspan(offset, _end - _begin - offset);
+  }
+
   /**
    * The span takes ownership of the adaptee
    */
