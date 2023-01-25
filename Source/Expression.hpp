@@ -1,5 +1,6 @@
 #pragma once
 #include "Utilities.hpp"
+#include <algorithm>
 #include <cmath>
 #include <cstdint>
 #include <functional>
@@ -372,6 +373,21 @@ class ExpressionSpanArgumentsWithAdditionalCustomAtoms
 public:
   using std::vector<
       ExpressionSpanArgumentWithAdditionalCustomAtoms<AdditionalCustomAtoms...>>::vector;
+
+  // The Spans are not copyable anyway,
+  // but we need to remove the copy constructors
+  // so the compilers provide more useful errors at the calling point when trying to copy
+  ExpressionSpanArgumentsWithAdditionalCustomAtoms(
+      ExpressionSpanArgumentsWithAdditionalCustomAtoms const&) = delete;
+  ExpressionSpanArgumentsWithAdditionalCustomAtoms&
+  operator=(ExpressionSpanArgumentsWithAdditionalCustomAtoms const&) = delete;
+
+  ExpressionSpanArgumentsWithAdditionalCustomAtoms() noexcept = default;
+  ExpressionSpanArgumentsWithAdditionalCustomAtoms(
+      ExpressionSpanArgumentsWithAdditionalCustomAtoms&&) noexcept = default;
+  ExpressionSpanArgumentsWithAdditionalCustomAtoms&
+  operator=(ExpressionSpanArgumentsWithAdditionalCustomAtoms&&) noexcept = default;
+  ~ExpressionSpanArgumentsWithAdditionalCustomAtoms() = default;
 };
 
 /**
