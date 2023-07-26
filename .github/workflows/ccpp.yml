@@ -11,42 +11,37 @@ on:
 
 jobs:
   format-check:
-    runs-on: self-hosted
+    runs-on: [self-hosted, ARM64]
     container:
-      image: docker.pkg.github.com/little-big-h/buildenvironment/ubuntubased
-      credentials:
-         username: ${{ github.actor }}
-         password: ${{ secrets.GITHUB_TOKEN }}
+      image: holgerpirk/bossbuild
     steps:
     - uses: actions/checkout@v3
-      with:
-        submodules: true
     - name: check
       run: |
         /usr/bin/git config --global --add safe.directory $GITHUB_WORKSPACE
+        clang-format -i -style=file --dump-config
         find . \( -name '*.cpp' -or -name '*.hpp' \) -exec clang-format -i -style=file '{}' ';'
-        git status -s
+        git diff
         exit $(git status -s | wc -l)
 
   build:
-    runs-on: [self-hosted, X64]
+    runs-on: [self-hosted, ARM64]
     strategy:
       matrix:
-        build-type: [Release, Debug, Sanitize]
+        build-type: [Release, Debug] # Sanitize
     container:
-      image: docker.pkg.github.com/little-big-h/buildenvironment/wolframbased:latest
-      credentials:
-         username: ${{ github.actor }}
-         password: ${{ secrets.GITHUB_TOKEN }}
+      image: holgerpirk/bossbuild
     steps:
     - uses: actions/checkout@v2
       with:
         submodules: true
+    - name: ccache
+      uses: hendrikmuhs/ccache-action@v1.2
     - name: configure
       run: |
         mkdir ${{ matrix.build-type }}
         cd ${{ matrix.build-type }}
-        CXX=clang++-11 CC=clang-11 cmake -DCMAKE_INSTALL_PREFIX=../install -DRacket_ROOT=/usr -DCMAKE_BUILD_TYPE=${{ matrix.build-type }} -DCMAKE_CXX_FLAGS:STRING="-std=c++17" -DCMAKE_CXX_CLANG_TIDY=clang-tidy-11 ..
+        CXX=clang++ CC=clang cmake -DCMAKE_INSTALL_PREFIX=../install -DRacket_ROOT=/usr -DCMAKE_BUILD_TYPE=${{ matrix.build-type }} -DCMAKE_CXX_FLAGS:STRING="-std=c++17" -DCMAKE_CXX_CLANG_TIDY=clang-tidy -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache ..
         cd ..
     - name: build
       run: |

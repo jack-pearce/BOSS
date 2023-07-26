@@ -1,7 +1,7 @@
 #pragma once
 #include "Expression.hpp"
 #include "Utilities.hpp"
-#include <arrow/array.h>
+#include <array>
 #include <cstdint>
 #include <map>
 #include <memory>
@@ -25,18 +25,17 @@ public:
    * libraries convert char const* to int or bool, not to ::std::string -- so I do
    * it explicitly
    */
+
+  typename ExpressionSystem::Expression
+  convertConstCharToStringAndOnToExpression(char const* v) const {
+    return ::std::string((char const*)v);
+  }
+  typename ExpressionSystem::Expression convertConstCharToStringAndOnToExpression(int v) const {
+    return int64_t(v);
+  }
   template <typename T>
   typename ExpressionSystem::Expression convertConstCharToStringAndOnToExpression(T&& v) const {
-    if constexpr(std::is_same_v<std::decay_t<T>, char const*>) {
-      return ::std::string((char const*)v);
-    }
-    // also convert int32 to int64 as a convenience
-    // (except if the expression's type system includes int32)
-    else if constexpr(std::is_same_v<std::decay_t<T>, int> && !isAtom<int>::value) {
-      return int64_t(v);
-    } else {
-      return std::forward<T>(v);
-    }
+    return std::forward<T>(v);
   }
 
   template <typename Ts>
@@ -63,8 +62,8 @@ public:
   operator()(Ts&&... args /*a*/) const {
     typename ExpressionSystem::ExpressionArguments argList;
     argList.reserve(sizeof...(Ts));
-    (argList.push_back(convertConstCharToStringAndOnToExpression<decltype(args)>(
-         ::std::forward<decltype(args)>(args))),
+    (argList.push_back(convertConstCharToStringAndOnToExpression(
+         ::std::forward<decltype(args)>(args))), // NOLINT(hicpp-no-array-decay)
      ...);
     return {s, {}, ::std::move(argList)};
   }
@@ -108,20 +107,5 @@ using ExpressionBuilder = ExtensibleExpressionBuilder<>;
 static ExpressionBuilder operator""_(const char* name, size_t /*unused*/) {
   return ExpressionBuilder(name);
 };
-
-namespace nasty {
-// the ownership model is unclear -- we really need to fix that
-static boss::ComplexExpressionWithStaticArguments<::std::int64_t>
-arrowArrayToExpression(::std::shared_ptr<arrow::Array> const& arrowPtr) {
-  static_assert(sizeof(void*) == sizeof(::std::int64_t),
-                "pointers are not 64-bit -- this might break in funky ways");
-  return "ArrowArrayPtr"_(reinterpret_cast<::std::int64_t>(&arrowPtr));
-}
-static ::std::shared_ptr<arrow::Array> reconstructArrowArray(::std::int64_t addressAsLong) {
-  static_assert(sizeof(void*) == sizeof(::std::int64_t),
-                "pointers are not 64-bit -- this might break in funky ways");
-  return *reinterpret_cast<::std::shared_ptr<arrow::Array> const*>(addressAsLong);
-}
-} // namespace nasty
 
 } // namespace boss::utilities

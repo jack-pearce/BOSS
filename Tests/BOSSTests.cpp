@@ -1,22 +1,24 @@
+#include <string_view>
 #define CATCH_CONFIG_RUNNER
 #include "../Source/BOSS.hpp"
 #include "../Source/BootstrapEngine.hpp"
 #include "../Source/ExpressionUtilities.hpp"
-#include <arrow/array.h>
-#include <arrow/builder.h>
+#include "../Source/Serialization.hpp"
+#include <array>
 #include <catch2/catch.hpp>
 #include <numeric>
 #include <variant>
 using boss::Expression;
 using std::string;
-using std::literals::string_literals::operator""s;
-using boss::utilities::operator""_;
+using std::literals::string_literals::operator""s; // NOLINT(misc-unused-using-decls) clang-tidy bug
+using boss::utilities::operator""_;                // NOLINT(misc-unused-using-decls) clang-tidy bug
 using Catch::Generators::random;
 using Catch::Generators::take;
 using Catch::Generators::values;
 using std::vector;
 using namespace Catch::Matchers;
 using boss::expressions::CloneReason;
+using boss::expressions::ComplexExpression;
 using boss::expressions::generic::get;
 using boss::expressions::generic::get_if;
 using boss::expressions::generic::holds_alternative;
@@ -25,9 +27,13 @@ using boss::expressions::atoms::Span;
 };
 using std::int64_t;
 
-static std::vector<string>
-    librariesToTest{}; // NOLINT(cppcoreguidelines-avoid-non-const-global-variables)
-
+namespace {
+std::vector<string> librariesToTest{}; // NOLINT(cppcoreguidelines-avoid-non-const-global-variables)
+}
+// NOLINTBEGIN(readability-magic-numbers)
+// NOLINTBEGIN(bugprone-exception-escape)
+// NOLINTBEGIN(readability-function-cognitive-complexity)
+// TODO: @Hubert, can you reduce the complexity of the tests, please?
 TEST_CASE("Subspans work correctly", "[spans]") {
   auto input = boss::Span<int64_t>{std::vector<int64_t>{1, 2, 4, 3}};
   auto subrange = std::move(input).subspan(1, 3);
@@ -43,6 +49,7 @@ TEST_CASE("Subspans work correctly", "[spans]") {
 TEST_CASE("Expressions", "[expressions]") {
   using SpanArguments = boss::expressions::ExpressionSpanArguments;
   using SpanArgument = boss::expressions::ExpressionSpanArgument;
+  using ExpressionArguments = boss::expressions::ExpressionArguments;
   using boss::expressions::atoms::Span;
   auto const v1 = GENERATE(take(3, random<std::int64_t>(1, 100)));
   auto const v2 = GENERATE(take(3, random<std::int64_t>(1, 100)));
@@ -58,22 +65,35 @@ TEST_CASE("Expressions", "[expressions]") {
     CHECK(e == staticArgumentExpression);
   }
 
+  SECTION("dynamic in-place initialized expression arguments") {
+    auto spanArgumentExpression =
+        boss::expressions::ComplexExpression("UnevaluatedPlus"_, {}, ExpressionArguments(v1, v2));
+    CHECK(e == spanArgumentExpression);
+  }
+
   SECTION("span expression arguments") {
     std::array<int64_t, 2> values = {v1, v2};
     SpanArguments args;
-    args.emplace_back(Span<int64_t>(&values[0], 2, nullptr));
+    args.emplace_back(Span<int64_t>(values.data(), 2, nullptr));
     auto spanArgumentExpression =
         boss::expressions::ComplexExpression("UnevaluatedPlus"_, {}, {}, std::move(args));
+    CHECK(e == spanArgumentExpression);
+  }
+
+  SECTION("in-place initialized span expression arguments") {
+    std::array<int64_t, 2> values = {v1, v2};
+    auto spanArgumentExpression = boss::expressions::ComplexExpression(
+        "UnevaluatedPlus"_, {}, {}, SpanArguments(Span<int64_t>(values.data(), 2, nullptr)));
     CHECK(e == spanArgumentExpression);
   }
 
   SECTION("nested span expression arguments") {
     std::array<int64_t, 2> values = {v1, v2};
     SpanArguments args;
-    args.emplace_back(Span<int64_t const>(&values[0], 2, nullptr));
+    args.emplace_back(Span<int64_t const>(values.data(), 2, nullptr));
     auto nested = boss::expressions::ComplexExpression("UnevaluatedPlus"_, {}, {}, std::move(args));
     boss::expressions::ExpressionArguments subExpressions;
-    subExpressions.push_back(std::move(nested));
+    subExpressions.emplace_back(std::move(nested));
     auto spanArgumentExpression =
         boss::expressions::ComplexExpression("UnevaluatedPlus"_, {}, std::move(subExpressions), {});
     CHECK("UnevaluatedPlus"_("UnevaluatedPlus"_(v1, v2)) == spanArgumentExpression);
@@ -353,8 +373,8 @@ TEST_CASE("move and dispatch expression's arguments", "[expressions]") {
 TEMPLATE_TEST_CASE("Complex Expressions with numeric Spans", "[spans]", std::int64_t,
                    std::double_t) {
   auto input = GENERATE(take(3, chunk(5, random<TestType>(1, 1000))));
-  auto v = vector<TestType>(input);
-  auto s = boss::Span<TestType>(std::move(v));
+  auto argument = vector<TestType>(input);
+  auto s = boss::Span<TestType>(std::move(argument));
   auto vectorExpression = "duh"_(std::move(s));
   REQUIRE(vectorExpression.getArguments().size() == input.size());
   for(auto i = 0U; i < input.size(); i++) {
@@ -367,8 +387,8 @@ TEMPLATE_TEST_CASE("Complex Expressions with numeric Spans", "[spans]", std::int
 TEMPLATE_TEST_CASE("Complex Expressions with non-owning numeric Spans", "[spans]", std::int64_t,
                    std::double_t) {
   auto input = GENERATE(take(3, chunk(5, random<TestType>(1, 1000))));
-  auto v = vector<TestType>(input);
-  auto s = boss::Span<TestType>(v);
+  auto argument = vector<TestType>(input);
+  auto s = boss::Span<TestType>(argument);
   auto vectorExpression = "duh"_(std::move(s));
   REQUIRE(vectorExpression.getArguments().size() == input.size());
   for(auto i = 0U; i < input.size(); i++) {
@@ -381,30 +401,9 @@ TEMPLATE_TEST_CASE("Complex Expressions with non-owning numeric Spans", "[spans]
 TEMPLATE_TEST_CASE("Complex Expressions with non-owning const numeric Spans", "[spans]",
                    std::int64_t, std::double_t) {
   auto input = GENERATE(take(3, chunk(5, random<TestType>(1, 1000))));
-  auto const v = vector<TestType>(input);
-  auto s = boss::Span<TestType const>(v);
+  auto const argument = vector<TestType>(input);
+  auto s = boss::Span<TestType const>(argument);
   auto const vectorExpression = "duh"_(std::move(s));
-  REQUIRE(vectorExpression.getArguments().size() == input.size());
-  for(auto i = 0U; i < input.size(); i++) {
-    CHECK(vectorExpression.getArguments().at(i) == input.at(i));
-    CHECK(vectorExpression.getArguments()[i] == input[i]);
-  }
-}
-
-// NOLINTNEXTLINE
-TEMPLATE_TEST_CASE("Complex Expressions with numeric Arrow Spans", "[spans][arrow]", std::int64_t,
-                   std::double_t) {
-  auto input = GENERATE(take(3, chunk(5, random<TestType>(1, 1000))));
-  auto s = [&input]() {
-    std::conditional_t<std::is_same_v<TestType, std::int64_t>, arrow::Int64Builder,
-                       arrow::DoubleBuilder>
-        builder;
-    auto status = builder.AppendValues(begin(input), end(input));
-    auto thingy = builder.Finish().ValueOrDie();
-    auto* v = thingy->data()->template GetMutableValues<TestType>(1);
-    return boss::Span<TestType>(v, thingy->length(), [thingy]() {});
-  }();
-  auto vectorExpression = "duh"_(std::move(s));
   REQUIRE(vectorExpression.getArguments().size() == input.size());
   for(auto i = 0U; i < input.size(); i++) {
     CHECK(vectorExpression.getArguments().at(i) == input.at(i));
@@ -430,7 +429,7 @@ TEMPLATE_TEST_CASE("Complex Expressions with Spans", "[spans]", std::string, bos
   auto vals = GENERATE(take(3, chunk(5, values({"a"s, "b"s, "c"s, "d"s, "e"s, "f"s, "g"s, "h"s}))));
   auto input = vector<TestType>();
   std::transform(begin(vals), end(vals), std::back_inserter(input),
-                 [](auto v) { return TestType(v); });
+                 [](auto argument) { return TestType(argument); });
   auto vectorExpression = "duh"_(boss::Span<TestType>(std::move(input)));
   for(auto i = 0U; i < vals.size(); i++) {
     CHECK(vectorExpression.getArguments().at(0) == TestType(vals.at(0)));
@@ -741,7 +740,9 @@ TEST_CASE("Basics", "[basics]") { // NOLINT
   }
 }
 
-static int64_t operator""_i64(char c) { return static_cast<int64_t>(c); };
+namespace {
+int64_t operator""_i64(char c) { return static_cast<int64_t>(c); };
+} // namespace
 
 TEST_CASE("TPC-H", "[tpch]") {
   auto engine = boss::engines::BootstrapEngine();
@@ -1344,12 +1345,118 @@ TEMPLATE_TEST_CASE("Summation of numeric Spans", "[spans]", std::int64_t, std::d
   }
 }
 
+TEST_CASE("Expression Serialization") {
+  auto const plans = std::array<boss::Expression, 8>{
+      "Yo"_,
+      "Howdie"_("Yo"_(5, 17, "duh"_(3)), "Five"_(6), 9, 1),
+      "Howdie"_(1, 4, 9, "You"_(1, 3), 9, 3),
+      "Top"_("Group"_(
+                 "Project"_(
+                     "Join"_("Select"_("Group"_("Project"_("lineitem"_,
+                                                           "As"_("L_ORDERKEY"_, "L_ORDERKEY"_,
+                                                                 "L_QUANTITY"_, "L_QUANTITY"_)),
+                                                "By"_("L_ORDERKEY"_),
+                                                "As"_("sum_l_quantity"_, "Sum"_("L_QUANTITY"_))),
+                                       "Where"_("Greater"_("sum_l_quantity"_, 1.0))), // NOLINT
+                             "Project"_(
+                                 "Join"_("Project"_("customer"_, "As"_("C_NAME"_, "C_NAME"_,
+                                                                       "C_CUSTKEY"_, "C_CUSTKEY"_)),
+                                         "Project"_("orders"_,
+                                                    "As"_("O_ORDERKEY"_, "O_ORDERKEY"_,
+                                                          "O_CUSTKEY"_, "O_CUSTKEY"_,
+                                                          "O_ORDERDATE"_, "O_ORDERDATE"_,
+                                                          "O_TOTALPRICE"_, "O_TOTALPRICE"_)),
+                                         "Where"_("Equal"_("C_CUSTKEY"_, "O_CUSTKEY"_))),
+                                 "As"_("C_NAME"_, "C_NAME"_, "O_ORDERKEY"_, "O_ORDERKEY"_,
+                                       "O_CUSTKEY"_, "O_CUSTKEY"_, "O_ORDERDATE"_, "O_ORDERDATE"_,
+                                       "O_TOTALPRICE"_, "O_TOTALPRICE"_)),
+                             "Where"_("Equal"_("L_ORDERKEY"_, "O_ORDERKEY"_))),
+                     "As"_("O_ORDERKEY"_, "O_ORDERKEY"_, "O_ORDERDATE"_, "O_ORDERDATE"_,
+                           "O_TOTALPRICE"_, "O_TOTALPRICE"_, "C_NAME"_, "C_NAME"_, "O_CUSTKEY"_,
+                           "O_CUSTKEY"_, "sum_l_quantity"_, "sum_l_quantity"_)),
+                 "By"_("C_NAME"_, "O_CUSTKEY"_, "O_ORDERKEY"_, "O_ORDERDATE"_, "O_TOTALPRICE"_),
+                 "Sum"_("sum_l_quantity"_)),
+             "By"_("O_TOTALPRICE"_, "desc"_, "O_ORDERDATE"_), 100),
+      "Table"_("Something"_(5, 17, "Sum"_(3, 9, 2)), "Else"_(6, "Date"_())),
+      "Table"_(1, 5, 9),
+      Expression(3),
+      "SetDefaultEnginePipeline"_(
+          "/Users/hlgr/Temp/BOSSWolframEngine/Debug/libBOSSWolframEngine.so")};
+  for(auto const& plan : plans) {
+    CHECK(boss::serialization::SerializedExpression(plan.clone(CloneReason::FOR_TESTING))
+              .deserialize() == plan);
+  }
+}
+
+TEST_CASE("Laxy Expression Serialization") {
+  auto const plans = std::array<boss::Expression, 8>{
+      "HiThere"_(1, 4, 9, "You"_(1, 3), 9, 3),
+      "Howdie"_("Yo"_(5, 17, "duh"_(3)), "Five"_(6), 9, 1),
+      "Yo"_,
+      "Top"_("Group"_(
+                 "Project"_(
+                     "Join"_("Select"_("Group"_("Project"_("lineitem"_,
+                                                           "As"_("L_ORDERKEY"_, "L_ORDERKEY"_,
+                                                                 "L_QUANTITY"_, "L_QUANTITY"_)),
+                                                "By"_("L_ORDERKEY"_),
+                                                "As"_("sum_l_quantity"_, "Sum"_("L_QUANTITY"_))),
+                                       "Where"_("Greater"_("sum_l_quantity"_, 1.0))), // NOLINT
+                             "Project"_(
+                                 "Join"_("Project"_("customer"_, "As"_("C_NAME"_, "C_NAME"_,
+                                                                       "C_CUSTKEY"_, "C_CUSTKEY"_)),
+                                         "Project"_("orders"_,
+                                                    "As"_("O_ORDERKEY"_, "O_ORDERKEY"_,
+                                                          "O_CUSTKEY"_, "O_CUSTKEY"_,
+                                                          "O_ORDERDATE"_, "O_ORDERDATE"_,
+                                                          "O_TOTALPRICE"_, "O_TOTALPRICE"_)),
+                                         "Where"_("Equal"_("C_CUSTKEY"_, "O_CUSTKEY"_))),
+                                 "As"_("C_NAME"_, "C_NAME"_, "O_ORDERKEY"_, "O_ORDERKEY"_,
+                                       "O_CUSTKEY"_, "O_CUSTKEY"_, "O_ORDERDATE"_, "O_ORDERDATE"_,
+                                       "O_TOTALPRICE"_, "O_TOTALPRICE"_)),
+                             "Where"_("Equal"_("L_ORDERKEY"_, "O_ORDERKEY"_))),
+                     "As"_("O_ORDERKEY"_, "O_ORDERKEY"_, "O_ORDERDATE"_, "O_ORDERDATE"_,
+                           "O_TOTALPRICE"_, "O_TOTALPRICE"_, "C_NAME"_, "C_NAME"_, "O_CUSTKEY"_,
+                           "O_CUSTKEY"_, "sum_l_quantity"_, "sum_l_quantity"_)),
+                 "By"_("C_NAME"_, "O_CUSTKEY"_, "O_ORDERKEY"_, "O_ORDERDATE"_, "O_TOTALPRICE"_),
+                 "Sum"_("sum_l_quantity"_)),
+             "By"_("O_TOTALPRICE"_, "desc"_, "O_ORDERDATE"_), 100),
+      "Table"_("Something"_(5, 17, "Sum"_(3, 9, 2)), "Else"_(6, "Date"_())),
+      "Table"_(1, 5, 9),
+      Expression(3),
+      "SetDefaultEnginePipeline"_(
+          "/Users/hlgr/Temp/BOSSWolframEngine/Debug/libBOSSWolframEngine.so")};
+
+  {
+    auto e = boss::serialization::SerializedExpression(Expression(3));
+    CHECK(!(e.lazilyDeserialize() == "Thingy"_));
+  }
+  {
+    auto e = boss::serialization::SerializedExpression(
+        "H"_("O"_("W"_(1, 5, 9)), "D"_("I"_(6, 1), "E"_(2))));
+    CHECK(e.lazilyDeserialize() ==
+          (Expression) "H"_("O"_("W"_(1, 5, 9)), "D"_("I"_(6, 1), "E"_(2))));
+  }
+  {
+    auto e = boss::serialization::SerializedExpression("Table"_(1, 5, 9));
+    CHECK(!(e.lazilyDeserialize() == "Table"_(1, 5, 10)));
+  }
+
+  for(auto const& plan : plans) {
+    auto e = boss::serialization::SerializedExpression(plan.clone(CloneReason::FOR_TESTING));
+    CHECK(e.lazilyDeserialize() == plan);
+    CHECK(!(e.lazilyDeserialize() == "Thingy"_));
+  }
+}
+
 int main(int argc, char* argv[]) {
   Catch::Session session;
   session.cli(session.cli() | Catch::clara::Opt(librariesToTest, "library")["--library"]);
-  int returnCode = session.applyCommandLine(argc, argv);
+  auto const returnCode = session.applyCommandLine(argc, argv);
   if(returnCode != 0) {
     return returnCode;
   }
   return session.run();
 }
+// NOLINTEND(readability-function-cognitive-complexity)
+// NOLINTEND(bugprone-exception-escape)
+// NOLINTEND(readability-magic-numbers)

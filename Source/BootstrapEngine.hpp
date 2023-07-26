@@ -116,7 +116,7 @@ class BootstrapEngine : public boss::Engine {
           {boss::Symbol("EvaluateInEngines"),
            [this](auto&& e) -> boss::Expression {
              auto symbols = ::std::vector<BOSSExpression* (*)(BOSSExpression*)>();
-             auto&& args = get<ComplexExpression>(e.getArguments().at(0)).getArguments();
+             auto args = get<ComplexExpression>(e.getArguments().at(0)).getArguments();
              ::std::for_each(args.begin(), args.end(), [this, &e, &symbols](auto&& enginePath) {
                symbols.push_back(reinterpret_cast<BOSSExpression* (*)(BOSSExpression*)>(
                    libraries.at(get<::std::string>(enginePath)).evaluateFunction));
@@ -149,6 +149,8 @@ class BootstrapEngine : public boss::Engine {
              algorithm::visitEach(expression.getArguments(), [this](auto&& engine) {
                if constexpr(::std::is_same_v<::std::decay_t<decltype(engine)>, ::std::string>) {
                  defaultEngine.push_back(engine);
+               } else {
+                 throw std::runtime_error("SetDefaultEnginePipeline received non-string argument");
                }
              });
              return "okay";
@@ -175,7 +177,7 @@ public:
     ::std::transform(::std::make_move_iterator(begin(expr.getArguments())),
                      ::std::make_move_iterator(end(expr.getArguments())),
                      begin(expr.getArguments()),
-                     [&](auto&& e) { return evaluate(::std::forward<decltype(e)>(e), false); });
+                     [this](auto&& e) { return evaluate(::std::forward<decltype(e)>(e), false); });
     return ::std::move(expr);
   }
 
