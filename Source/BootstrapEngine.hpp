@@ -67,6 +67,8 @@ static void* dlsym(void* hModule, LPCSTR lpProcName) {
 #include <unordered_set>
 #include <variant>
 
+using boss::utilities::operator""_;
+
 namespace boss {
 namespace engines {
 namespace {
@@ -145,7 +147,8 @@ class BootstrapEngine : public boss::Engine {
              freeBOSSExpression(r); // NOLINT
              return ::std::move(result);
            }},
-          {boss::Symbol("SetDefaultEnginePipeline"), [this](auto&& expression) -> boss::Expression {
+          {boss::Symbol("SetDefaultEnginePipeline"),
+           [this](auto&& expression) -> boss::Expression {
              algorithm::visitEach(expression.getArguments(), [this](auto&& engine) {
                if constexpr(::std::is_same_v<::std::decay_t<decltype(engine)>, ::std::string>) {
                  defaultEngine.push_back(engine);
@@ -154,6 +157,38 @@ class BootstrapEngine : public boss::Engine {
                }
              });
              return "okay";
+           }},
+          {boss::Symbol("DelegateBootstrapping"), [this](auto&& e) -> boss::Expression {
+             auto delegatedEngineSymbols = ::std::vector<int64_t>();
+             auto args = get<ComplexExpression>(e.getArguments().at(0)).getArguments();
+             ::std::for_each(args.begin(), args.end(),
+                             [this, &e, &delegatedEngineSymbols](auto&& enginePath) {
+                               delegatedEngineSymbols.push_back(reinterpret_cast<int64_t>(
+                                   libraries.at(get<::std::string>(enginePath)).evaluateFunction));
+                             });
+             auto newBootstrapperPath = get<::std::string>(
+                 get<ComplexExpression>(e.getArguments().at(1)).getArguments().at(0));
+             auto newBootstrapperSymbol = reinterpret_cast<BOSSExpression* (*)(BOSSExpression*)>(
+                 libraries.at(newBootstrapperPath).evaluateFunction);
+
+             auto newArgs = boss::ExpressionArguments();
+             auto newSpanArgs = boss::expressions::ExpressionSpanArguments();
+             ::std::for_each(
+                 ::std::make_move_iterator(::std::next(::std::next(e.getArguments().begin()))),
+                 ::std::make_move_iterator(e.getArguments().end()), [&newArgs](auto&& argument) {
+                   newArgs.emplace_back(::std::forward<decltype(argument)>(argument));
+                 });
+             newSpanArgs.emplace_back(boss::Span<int64_t>(::std::move(delegatedEngineSymbols)));
+             auto* wrapper = new BOSSExpression{boss::ComplexExpression(
+                 "EvaluateInEngines"_, {}, std::move(newArgs), std::move(newSpanArgs))};
+
+             auto* oldWrapper = wrapper;
+             wrapper = newBootstrapperSymbol(wrapper);
+             freeBOSSExpression(oldWrapper);
+
+             auto result = ::std::move(wrapper->delegate);
+             freeBOSSExpression(wrapper);
+             return ::std::move(result);
            }}};
   bool isBootstrapCommand(boss::Expression const& expression) {
     return visit(utilities::overload(
