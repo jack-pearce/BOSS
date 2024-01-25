@@ -166,6 +166,7 @@
   '(Top input predicate number)
   '(EvaluateInEngines enginePipelineLibraryPathList expression ...)
   '(SetDefaultEnginePipeline pathToLibrary ...)
+  '(DelegateBootstrapping enginePipelineLibraryPathList newBootstrapEngineLibraryPathList expression ...)
   )
 
 (provide main)
