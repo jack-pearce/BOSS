@@ -160,14 +160,13 @@ class BootstrapEngine : public boss::Engine {
            }},
           {boss::Symbol("DelegateBootstrapping"), [this](auto&& e) -> boss::Expression {
              auto delegatedEngineSymbols = ::std::vector<int64_t>();
-             auto args = get<ComplexExpression>(e.getArguments().at(0)).getArguments();
+             auto args = get<ComplexExpression>(e.getArguments().at(1)).getArguments();
              ::std::for_each(args.begin(), args.end(),
                              [this, &e, &delegatedEngineSymbols](auto&& enginePath) {
                                delegatedEngineSymbols.push_back(reinterpret_cast<int64_t>(
                                    libraries.at(get<::std::string>(enginePath)).evaluateFunction));
                              });
-             auto newBootstrapperPath = get<::std::string>(
-                 get<ComplexExpression>(e.getArguments().at(1)).getArguments().at(0));
+             auto newBootstrapperPath = get<::std::string>(e.getArguments().at(0));
              auto newBootstrapperSymbol = reinterpret_cast<BOSSExpression* (*)(BOSSExpression*)>(
                  libraries.at(newBootstrapperPath).evaluateFunction);
 
