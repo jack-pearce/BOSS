@@ -1463,6 +1463,17 @@ TEST_CASE("Laxy Expression Serialization") {
   }
 }
 
+TEST_CASE("DELEGATE BOOTSTRAPPING", "[]") {
+  auto engine = boss::engines::BootstrapEngine();
+
+  // auto res = engine.evaluate("DelegateBootstrapping"_("/home/david/Documents/PhD/symbol-store/BOSSLazyLoadingCoordinatorEngine/build/libBOSSLazyLoadingCoordinatorEngine.so", "List"_("/home/david/Documents/PhD/symbol-store/BOSSRemoteBinaryLoaderEngine/build/libBOSSRemoteBinaryLoaderEngine.so", "/home/david/Documents/PhD/symbol-store/BOSSWisentDeserialiserEngine/build/libBOSSWisentDeserialiserEngine.so"), "Parse"_("Fetch"_((int64_t) 0, (int64_t) 274, "https://www.doc.ic.ac.uk/~dcl19/simpleWisentTable.bin"))));
+  
+  auto res = engine.evaluate("EvaluateInEngines"_("List"_("/home/david/Documents/PhD/symbol-store/BOSSRemoteBinaryLoaderEngine/build/libBOSSRemoteBinaryLoaderEngine.so", "/home/david/Documents/PhD/symbol-store/BOSSWisentDeserialiserEngine/build/libBOSSWisentDeserialiserEngine.so"), "Parse"_("Fetch"_((int64_t) 0, (int64_t) 274, "https://www.doc.ic.ac.uk/~dcl19/simpleWisentTable.bin"))));
+
+    std::cout << res << std::endl;
+
+}
+
 int main(int argc, char* argv[]) {
   Catch::Session session;
   session.cli(session.cli() | Catch::clara::Opt(librariesToTest, "library")["--library"]);
